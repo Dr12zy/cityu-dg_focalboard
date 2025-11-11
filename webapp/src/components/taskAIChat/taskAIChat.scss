@@ -1,0 +1,281 @@
+.task-ai-chat {
+    // 自定义灰白色主题配色，覆盖默认的sidebar变量
+    --chat-bg-rgb: 255, 255, 255;  // 白色背景
+    --chat-text-rgb: 33, 37, 41;   // 深灰色文字
+    --chat-border-rgb: 222, 226, 230; // 浅灰色边框
+    --chat-accent-rgb: 108, 117, 125; // 中灰色强调色
+
+    display: flex;
+    flex-direction: column;
+    width: 800px;
+    height: 700px;
+    min-width: 400px;
+    min-height: 500px;
+    max-width: 90vw;
+    max-height: 90vh;
+    background: rgb(var(--chat-bg-rgb));
+    color: rgb(var(--chat-text-rgb));
+    border-radius: 8px;
+    overflow: hidden;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 9999 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+    resize: both !important;
+    transition: all 0.2s ease;
+
+    &.drag-over {
+        z-index: 10000 !important;
+        border: 2px solid rgba(var(--chat-accent-rgb), 0.4) !important; // 更明显的边框表示拖拽状态
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important; // 增强阴影效果
+        width: 800px !important;
+        height: 700px !important;
+        min-width: 800px !important;
+        min-height: 700px !important;
+        max-width: 800px !important;
+        max-height: 700px !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        resize: none !important; // 拖拽时禁用手动调整大小
+
+        &::after {
+            content: '拖拽文件到此处上传';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(var(--chat-bg-rgb), 0.95);
+            color: rgb(var(--chat-text-rgb));
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10001; // 提示文字在最前面
+            pointer-events: none;
+        }
+    }
+
+    .task-ai-chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid rgba(var(--chat-border-rgb), 0.3);
+
+        h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: rgb(var(--chat-text-rgb));
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+                background-color: rgba(var(--chat-border-rgb), 0.2);
+                border-radius: 4px;
+            }
+        }
+    }
+
+    .task-ai-chat-messages {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+
+        // Hide scrollbar
+        scrollbar-width: none; // Firefox
+        -ms-overflow-style: none; // IE and Edge
+
+        &::-webkit-scrollbar {
+            display: none; // Chrome, Safari, and Opera
+        }
+
+        .welcome-message {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 18px;
+            color: rgba(var(--chat-text-rgb), 0.7);
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            /* 保持换行和长单词换行，确保多行消息正常显示 */
+            white-space: pre-wrap;
+            word-break: break-word;
+
+            &.user {
+                background-color: rgba(var(--chat-accent-rgb), 0.1);
+                align-self: flex-end;
+                margin-left: auto;
+            }
+
+            &.ai {
+                background-color: rgba(var(--chat-border-rgb), 0.3);
+            }
+        }
+    }
+
+    .task-ai-chat-input-area {
+        border-top: 1px solid rgba(var(--chat-border-rgb), 0.3);
+        background: linear-gradient(to bottom, rgba(var(--chat-bg-rgb), 0.02), rgba(var(--chat-bg-rgb), 0.01));
+    }
+
+    .task-ai-chat-input {
+        display: flex;
+        align-items: center;
+        padding: 20px 16px;
+        gap: 12px;
+        position: relative;
+
+        input, textarea {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(var(--chat-border-rgb), 0.4);
+            border-radius: 24px;
+            background: rgba(var(--chat-bg-rgb), 0.98);
+            color: rgb(var(--chat-text-rgb));
+            font-size: 14px;
+            line-height: 1.4;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            font-family: inherit;
+
+            &::placeholder {
+                color: rgba(var(--chat-text-rgb), 0.5);
+                font-style: italic;
+            }
+
+            &:focus {
+                outline: none;
+                border-color: rgba(var(--chat-accent-rgb), 0.6);
+                background: rgb(var(--chat-bg-rgb));
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                transform: translateY(-1px);
+            }
+
+            &:hover {
+                border-color: rgba(var(--chat-border-rgb), 0.6);
+            }
+        }
+
+        textarea {
+            min-height: 60px;
+            max-height: 160px;
+            overflow-y: auto;
+
+            // Hide scrollbar
+            scrollbar-width: none; // Firefox
+            -ms-overflow-style: none; // IE and Edge
+
+            &::-webkit-scrollbar {
+                display: none; // Chrome, Safari, and Opera
+            }
+
+            &:focus {
+                min-height: 60px;
+            }
+        }
+
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(var(--chat-accent-rgb), 0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            color: rgb(var(--chat-text-rgb));
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+
+            &:hover {
+                background: rgba(var(--chat-accent-rgb), 0.2);
+                transform: scale(1.05);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            &:active {
+                transform: scale(0.95);
+            }
+        }
+
+        .file-upload-button {
+            font-size: 18px;
+            background: rgba(var(--chat-accent-rgb), 0.08);
+
+            &:hover {
+                background: rgba(var(--chat-accent-rgb), 0.15);
+            }
+        }
+    }
+
+    .selected-file {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        margin: 0 16px;
+        background: rgba(var(--chat-border-rgb), 0.1);
+        border: 1px solid rgba(var(--chat-border-rgb), 0.2);
+        border-radius: 12px;
+        margin-bottom: 16px;
+
+        span {
+            font-size: 13px;
+            color: rgb(33, 37, 41); // 深灰色/黑色文字，确保在白色背景上可见
+            font-weight: 500;
+            flex: 1;
+            margin-right: 12px;
+        }
+
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: rgba(var(--chat-accent-rgb), 0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            color: rgb(var(--chat-text-rgb));
+            font-size: 14px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+
+            &:hover {
+                background: rgba(var(--chat-accent-rgb), 0.2);
+                transform: scale(1.1);
+            }
+
+            &:active {
+                transform: scale(0.9);
+            }
+        }
+    }
+}

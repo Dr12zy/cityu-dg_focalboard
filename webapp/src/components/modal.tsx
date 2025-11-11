@@ -9,15 +9,16 @@ import './modal.scss'
 type Props = {
     onClose: () => void
     position?: 'top'|'bottom'|'bottom-right'
+    closeOnBlur?: boolean
     children: React.ReactNode
 }
 
 const Modal = (props: Props): JSX.Element => {
     const node = useRef<HTMLDivElement>(null)
 
-    const {position, onClose, children} = props
+    const {position, onClose, closeOnBlur = true, children} = props
 
-    const closeOnBlur = useCallback((e: Event) => {
+    const closeOnBlurHandler = useCallback((e: Event) => {
         if (e.target && node.current?.contains(e.target as Node)) {
             return
         }
@@ -25,11 +26,13 @@ const Modal = (props: Props): JSX.Element => {
     }, [onClose])
 
     useEffect(() => {
-        document.addEventListener('click', closeOnBlur, true)
-        return () => {
-            document.removeEventListener('click', closeOnBlur, true)
+        if (closeOnBlur) {
+            document.addEventListener('click', closeOnBlurHandler, true)
+            return () => {
+                document.removeEventListener('click', closeOnBlurHandler, true)
+            }
         }
-    }, [closeOnBlur])
+    }, [closeOnBlur, closeOnBlurHandler])
 
     return (
         <div
