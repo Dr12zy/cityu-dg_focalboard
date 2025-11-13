@@ -41,6 +41,7 @@ type API struct {
 	MattermostAuth  bool
 	logger          mlog.LoggerIFace
 	audit           *audit.Audit
+	ragService      *RAGService
 }
 
 func NewAPI(
@@ -51,7 +52,7 @@ func NewAPI(
 	logger mlog.LoggerIFace,
 	audit *audit.Audit,
 ) *API {
-	return &API{
+	api := &API{
 		app:             app,
 		singleUserToken: singleUserToken,
 		authService:     authService,
@@ -59,6 +60,9 @@ func NewAPI(
 		logger:          logger,
 		audit:           audit,
 	}
+
+	api.ragService = NewRAGService(app, logger)
+	return api
 }
 
 func (a *API) RegisterRoutes(r *mux.Router) {
@@ -96,6 +100,9 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 
 	// V3 routes
 	a.registerCardsRoutes(apiv2)
+
+	// AI routes
+	a.registerAIRoutes(apiv2)
 
 	// System routes are outside the /api/v2 path
 	a.registerSystemRoutes(r)
