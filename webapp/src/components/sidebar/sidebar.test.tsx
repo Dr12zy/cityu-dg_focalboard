@@ -87,11 +87,15 @@ describe('components/sidebarSidebar', () => {
 
         const history = createMemoryHistory()
         const onBoardTemplateSelectorOpen = jest.fn()
+        const onTaskAIOpen = jest.fn()
 
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}/>
+                    <Sidebar 
+                        onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
+                        onTaskAIOpen={onTaskAIOpen}
+                    />
                 </Router>
             </ReduxProvider>,
         )
@@ -156,11 +160,15 @@ describe('components/sidebarSidebar', () => {
 
         const history = createMemoryHistory()
         const onBoardTemplateSelectorOpen = jest.fn()
+        const onTaskAIOpen = jest.fn()
 
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}/>
+                    <Sidebar 
+                        onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
+                        onTaskAIOpen={onTaskAIOpen}
+                    />
                 </Router>
             </ReduxProvider>,
         )
@@ -224,11 +232,15 @@ describe('components/sidebarSidebar', () => {
 
         const history = createMemoryHistory()
         const onBoardTemplateSelectorOpen = jest.fn()
+        const onTaskAIOpen = jest.fn()
 
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}/>
+                    <Sidebar 
+                        onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
+                        onTaskAIOpen={onTaskAIOpen}
+                    />
                 </Router>
             </ReduxProvider>,
         )
@@ -291,11 +303,15 @@ describe('components/sidebarSidebar', () => {
 
         const history = createMemoryHistory()
         const onBoardTemplateSelectorOpen = jest.fn()
+        const onTaskAIOpen = jest.fn()
 
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}/>
+                    <Sidebar 
+                        onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
+                        onTaskAIOpen={onTaskAIOpen}
+                    />
                 </Router>
             </ReduxProvider>,
         )
@@ -349,13 +365,17 @@ describe('components/sidebarSidebar', () => {
 
         const history = createMemoryHistory()
         const onBoardTemplateSelectorOpen = jest.fn()
+        const onTaskAIOpen = jest.fn()
 
         mockedOctoClient.moveBoardToCategory.mockResolvedValueOnce({} as Response)
 
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}/>
+                    <Sidebar 
+                        onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
+                        onTaskAIOpen={onTaskAIOpen}
+                    />
                 </Router>
             </ReduxProvider>,
         )
@@ -413,11 +433,15 @@ describe('components/sidebarSidebar', () => {
 
         const history = createMemoryHistory()
         const onBoardTemplateSelectorOpen = jest.fn()
+        const onTaskAIOpen = jest.fn()
 
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}/>
+                    <Sidebar 
+                        onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
+                        onTaskAIOpen={onTaskAIOpen}
+                    />
                 </Router>
             </ReduxProvider>,
         )
