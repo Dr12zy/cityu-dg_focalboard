@@ -19,6 +19,25 @@ import {BoardsCloudLimits} from './boardsCloudLimits'
 import {TopBoardResponse} from './insights'
 import {BoardSiteStatistics} from './statistics'
 
+export type AIChatMessage = {
+    role: 'user' | 'assistant'
+    content: string
+}
+
+export type AIChatRequest = {
+    message: string
+    messages?: AIChatMessage[]
+    model?: string
+    temperature?: number
+    maxTokens?: number
+    stream?: boolean
+}
+
+export type AIChatResponse = {
+    message: string
+    model?: string
+}
+
 //
 // OctoClient is the client interface to the server APIs
 //
@@ -1082,6 +1101,42 @@ class OctoClient {
             method: 'PUT',
             headers: this.headers(),
         })
+    }
+
+    async sendAIChat(request: AIChatRequest): Promise<AIChatResponse> {
+        const path = '/api/v2/ai/chat'
+        const payload: Record<string, unknown> = {
+            message: request.message,
+        }
+
+        if (request.messages && request.messages.length) {
+            payload.messages = request.messages
+        }
+        if (typeof request.temperature !== 'undefined') {
+            payload.temperature = request.temperature
+        }
+        if (typeof request.stream !== 'undefined') {
+            payload.stream = request.stream
+        }
+        if (request.model) {
+            payload.model = request.model
+        }
+        if (typeof request.maxTokens !== 'undefined') {
+            payload.max_tokens = request.maxTokens
+        }
+
+        const response = await fetch(this.getBaseURL() + path, {
+            method: 'POST',
+            headers: this.headers(),
+            body: JSON.stringify(payload),
+        })
+
+        const json = (await this.getJson(response, {message: ''})) as AIChatResponse & {error?: string}
+        if (response.status !== 200) {
+            throw new Error(json?.message || json?.error || 'Unable to reach AI service')
+        }
+
+        return json
     }
 }
 
