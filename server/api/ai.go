@@ -349,13 +349,16 @@ func buildMessages(aiReq AIRequest) []Message {
 
 // getAIConfig (保持不变).
 func (a *API) getAIConfig(requestedModel string) (apiKey, apiURL, modelName string) {
-	modelName = requestedModel
-	if modelName == "" {
-		modelName = "qwen-plus"
-	}
-	apiKey = getEnv("DASHSCOPE_API_KEY", "")
-	apiURL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-	return apiKey, apiURL, modelName
+    modelName = requestedModel
+    if modelName == "" {
+        modelName = "qwen-plus"
+    }
+    apiKey = getEnv("DASHSCOPE_API_KEY", "")
+    if apiKey == "" {
+        apiKey = getEnv("aiapikey", "")
+    }
+    apiURL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    return apiKey, apiURL, modelName
 }
 
 // getEnv (保持不变).

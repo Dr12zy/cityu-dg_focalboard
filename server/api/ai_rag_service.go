@@ -132,7 +132,12 @@ func (s *RAGService) PrepareRAGResponse(userID string, question string) (string,
 
 // classifyIntent: 调用一次 Qwen（非流式），输出 chat 或 query_data.
 func (s *RAGService) classifyIntent(question string) (string, error) {
-	prompt := fmt.Sprintf(`你是一个分类器。请只输出一个词：chat 或 query_data。
+    q := strings.ToLower(strings.TrimSpace(question))
+    if (strings.Contains(q, "任务") || strings.Contains(q, "task")) && (strings.Contains(q, "查询") || strings.Contains(q, "我的") || strings.Contains(q, "统计")) {
+        s.logger.Debug("RAGService: classifyIntent keyword heuristic -> query_data", mlog.String("question", question))
+        return intentQueryData, nil
+    }
+    prompt := fmt.Sprintf(`你是一个分类器。请只输出一个词：chat 或 query_data。
 规则：
 - 当用户是在闲聊、问候、或没有明确要求查询项目数据时，输出 chat。
 - 当用户在请求和 Focalboard 项目数据相关的统计、筛选、列表、进度等查询时，输出 query_data。
@@ -148,7 +153,7 @@ func (s *RAGService) classifyIntent(question string) (string, error) {
 		return "", err
 	}
 
-	ans := strings.ToLower(strings.TrimSpace(out))
+    ans := strings.ToLower(strings.TrimSpace(out))
 
 	s.logger.Debug("RAGService: classifyIntent raw response",
 		mlog.String("raw_output", out),
@@ -173,10 +178,27 @@ func (s *RAGService) classifyIntent(question string) (string, error) {
 
 // generateSQL: 基于 schema / userID / question 生成只读 SQL.
 func (s *RAGService) generateSQL(schema string, userID string, question string) (string, error) {
-	prompt := fmt.Sprintf(`你是一个 Text-to-SQL 助手。请根据给定的数据库结构 (DDL) 和用户问题，生成一个只读、安全的 SQL。
+    q := strings.ToLower(strings.TrimSpace(question))
+    if (strings.Contains(q, "任务") || strings.Contains(q, "task")) && (strings.Contains(q, "我的") || strings.Contains(q, "我") || strings.Contains(q, "me")) {
+        statusFilter := ""
+        if strings.Contains(q, "待办") || strings.Contains(q, "代办") || strings.Contains(q, "todo") {
+            statusFilter = " AND json_extract(fields,'$.properties.status')='todo'"
+        } else if strings.Contains(q, "已完成") || strings.Contains(q, "完成") || strings.Contains(q, "done") {
+            statusFilter = " AND json_extract(fields,'$.properties.status')='done'"
+        } else if strings.Contains(q, "进行中") || strings.Contains(q, "在做") || strings.Contains(q, "in-progress") {
+            statusFilter = " AND json_extract(fields,'$.properties.status')='in-progress'"
+        } else if strings.Contains(q, "阻塞") || strings.Contains(q, "blocked") {
+            statusFilter = " AND json_extract(fields,'$.properties.status')='blocked'"
+        } else if strings.Contains(q, "评审") || strings.Contains(q, "review") {
+            statusFilter = " AND json_extract(fields,'$.properties.status')='in-review'"
+        }
+        sqlText := fmt.Sprintf("SELECT id, title, board_id, json_extract(fields,'$.properties.status') AS status, json_extract(fields,'$.properties.due_date') AS due_date, json_extract(fields,'$.properties.priority') AS priority FROM blocks WHERE type='card' AND json_extract(fields,'$.properties.assignee_id')='%s'%s ORDER BY update_at DESC LIMIT 50", userID, statusFilter)
+        return sqlText, nil
+    }
+    prompt := fmt.Sprintf(`你是一个 Text-to-SQL 助手。请根据给定的数据库结构 (DDL) 和用户问题，生成一个只读、安全的 SQL。
 要求：
 - 只生成单条 SELECT 语句，不要包含任何其它内容（不要包含注释、解释、分号）。
-- 根据数据库类型为 sqlite（默认）来生成（例如使用 json_extract(fields, '$.assignee_id') 访问 JSON）。
+- 根据数据库类型为 sqlite（默认）来生成（例如使用 json_extract(fields, '$.properties.assignee_id') 访问 JSON）。
 - 必须包含对用户 user_id 的约束：例如筛选 assignee_id = '%s' 的卡片或与之相关的数据。
 - 如果问题涉及看板或卡片统计，请合理连接 boards 与 blocks（type='card' 代表卡片）。
 - 尽量只返回必要的字段：例如卡片 id、title、board_id、状态、到期时间、更新时间等。
@@ -222,8 +244,13 @@ func (s *RAGService) executeQuery(query string) (string, error) {
 
 	s.logger.Debug("RAGService: executeQuery connecting to DB", mlog.String("db_path", dbPath))
 
-	dsn := dbPath + "?_busy_timeout=5000&_journal_mode=WAL"
-	db, err := sql.Open("sqlite3", dsn)
+    dsn := dbPath
+    if strings.Contains(dbPath, "?") {
+        dsn = dbPath + "&_busy_timeout=5000&_journal_mode=WAL"
+    } else {
+        dsn = dbPath + "?_busy_timeout=5000&_journal_mode=WAL"
+    }
+    db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		s.logger.Error("RAGService: executeQuery sql.Open failed", mlog.Err(err))
 		return "", err
@@ -289,11 +316,14 @@ func (s *RAGService) buildFinalPrompt(question string, contextData string) strin
 
 // callQwenInternal: 使用当前项目中配置的阿里云百炼（OpenAI 兼容）接口进行一次非流式调用.
 func (s *RAGService) callQwenInternal(prompt string) (string, error) {
-	apiKey := strings.TrimSpace(os.Getenv("DASHSCOPE_API_KEY"))
-	if apiKey == "" {
-		s.logger.Error("RAGService: callQwenInternal DASHSCOPE_API_KEY is not set")
-		return "", ErrAPIKeyNotSet // Linter 修复 (err113): 使用静态错误
-	}
+    apiKey := strings.TrimSpace(os.Getenv("DASHSCOPE_API_KEY"))
+    if apiKey == "" {
+        apiKey = strings.TrimSpace(os.Getenv("aiapikey"))
+    }
+    if apiKey == "" {
+        s.logger.Error("RAGService: callQwenInternal DASHSCOPE_API_KEY is not set")
+        return "", ErrAPIKeyNotSet // Linter 修复 (err113): 使用静态错误
+    }
 	model := strings.TrimSpace(os.Getenv("DASHSCOPE_MODEL"))
 	if model == "" {
 		model = "qwen-plus"

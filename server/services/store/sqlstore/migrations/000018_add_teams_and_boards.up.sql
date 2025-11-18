@@ -44,14 +44,6 @@ UPDATE {{.prefix}}blocks b
 
 {{if .sqlite}}
 UPDATE {{.prefix}}blocks SET fields = replace(fields, '"columnCalculations":[]', '"columnCalculations":{}');
-
-UPDATE {{.prefix}}blocks AS b
-    SET fields = (
-        SELECT  json_set(a.fields, '$.columnCalculations',json_extract(c.fields,  '$.columnCalculations')) from {{.prefix}}blocks AS a
-        JOIN {{.prefix}}blocks AS c on c.id = a.root_id
-        WHERE a.id = b.id)
-    WHERE json_extract(b.fields,'$.viewType') = 'table'
-    AND b.type = 'view';
 {{end}}
 
 {{- /* TODO: Migrate the columnCalculations at app level and remove it from the boards and boards_history tables */ -}}

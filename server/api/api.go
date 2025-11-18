@@ -34,31 +34,33 @@ var (
 // REST APIs
 
 type API struct {
-	app             *app.App
-	authService     string
-	permissions     permissions.PermissionsService
-	singleUserToken string
-	MattermostAuth  bool
-	logger          mlog.LoggerIFace
-	audit           *audit.Audit
+    app             *app.App
+    authService     string
+    permissions     permissions.PermissionsService
+    singleUserToken string
+    MattermostAuth  bool
+    logger          mlog.LoggerIFace
+    audit           *audit.Audit
+    ragService      *RAGService
 }
 
 func NewAPI(
-	app *app.App,
-	singleUserToken string,
-	authService string,
-	permissions permissions.PermissionsService,
-	logger mlog.LoggerIFace,
-	audit *audit.Audit,
+    app *app.App,
+    singleUserToken string,
+    authService string,
+    permissions permissions.PermissionsService,
+    logger mlog.LoggerIFace,
+    audit *audit.Audit,
 ) *API {
-	return &API{
-		app:             app,
-		singleUserToken: singleUserToken,
-		authService:     authService,
-		permissions:     permissions,
-		logger:          logger,
-		audit:           audit,
-	}
+    return &API{
+        app:             app,
+        singleUserToken: singleUserToken,
+        authService:     authService,
+        permissions:     permissions,
+        logger:          logger,
+        audit:           audit,
+        ragService:      NewRAGService(app, logger),
+    }
 }
 
 func (a *API) RegisterRoutes(r *mux.Router) {
@@ -97,12 +99,13 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 	// V3 routes
 	a.registerCardsRoutes(apiv2)
 
-	// AI routes
-	a.registerAICreateCardRoutes(apiv2)
-	a.registerAIModifyCardRoutes(apiv2)
+    // AI routes
+    a.registerAICreateCardRoutes(apiv2)
+    a.registerAIModifyCardRoutes(apiv2)
+    a.registerAIRoutes(apiv2)
 
-	// System routes are outside the /api/v2 path
-	a.registerSystemRoutes(r)
+    // System routes are outside the /api/v2 path
+    a.registerSystemRoutes(r)
 }
 
 func (a *API) RegisterAdminRoutes(r *mux.Router) {

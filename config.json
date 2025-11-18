@@ -11,7 +11,7 @@
 	"filesdriver": "local",
 	"filespath": "./files",
 	"telemetry": true,
-	"prometheusaddress": ":9092",
+    "prometheusaddress": "",
 	"webhook_update": [],
 	"session_expire_time": 2592000,
 	"session_refresh_time": 18000,
