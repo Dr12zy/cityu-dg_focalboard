@@ -124,6 +124,18 @@ func (s *RAGService) PrepareRAGResponse(userID string, question string) (string,
 
 	s.logger.Debug("RAGService: Step 3 (executeQuery) success", mlog.Int("json_len", len(contextJSON)))
 
+	// 当严格过滤条件导致结果为空时，回退到最近卡片的宽松查询，以确保用户能看到当前项目的任务概览
+	if strings.TrimSpace(contextJSON) == "[]" {
+		fallbackSQL := "SELECT id, title, board_id, fields, update_at FROM blocks WHERE type='card' AND delete_at=0 ORDER BY update_at DESC LIMIT 50"
+		s.logger.Warn("RAGService: primary query returned empty, applying fallback query", mlog.String("fallback_sql", fallbackSQL))
+		fbJSON, fbErr := s.executeQuery(fallbackSQL)
+		if fbErr == nil {
+			contextJSON = fbJSON
+		} else {
+			s.logger.Error("RAGService: fallback executeQuery failed", mlog.Err(fbErr))
+		}
+	}
+
 	finalPrompt := s.buildFinalPrompt(question, contextJSON)
 
 	s.logger.Debug("RAGService: Step 4 (buildFinalPrompt) success. RAG pipeline complete.")
@@ -132,6 +144,24 @@ func (s *RAGService) PrepareRAGResponse(userID string, question string) (string,
 
 // classifyIntent: 调用一次 Qwen（非流式），输出 chat 或 query_data.
 func (s *RAGService) classifyIntent(question string) (string, error) {
+	q := strings.ToLower(strings.TrimSpace(question))
+	if strings.Contains(q, "查询我的任务") || strings.Contains(q, "我的任务") || (strings.Contains(q, "任务") && strings.Contains(q, "我")) {
+		s.logger.Debug("RAGService: classifyIntent keyword rule => query_data", mlog.String("question", question))
+		return intentQueryData, nil
+	}
+	keys := []string{"查询", "代办", "进行中", "未完成", "完成", "已完成", "逾期", "过期", "截止", "到期"}
+	hasKey := false
+	for _, k := range keys {
+		if strings.Contains(q, k) {
+			hasKey = true
+			break
+		}
+	}
+	if hasKey && strings.Contains(q, "任务") {
+		s.logger.Debug("RAGService: classifyIntent keyword rule => query_data", mlog.String("question", question))
+		return intentQueryData, nil
+	}
+
 	prompt := fmt.Sprintf(`你是一个分类器。请只输出一个词：chat 或 query_data。
 规则：
 - 当用户是在闲聊、问候、或没有明确要求查询项目数据时，输出 chat。
@@ -173,11 +203,61 @@ func (s *RAGService) classifyIntent(question string) (string, error) {
 
 // generateSQL: 基于 schema / userID / question 生成只读 SQL.
 func (s *RAGService) generateSQL(schema string, userID string, question string) (string, error) {
+	catalog, err := s.discoverPropertyCatalog()
+	if err != nil {
+		s.logger.Warn("RAGService: discoverPropertyCatalog failed, proceeding without dynamic properties", mlog.Err(err))
+	}
+	q := strings.ToLower(strings.TrimSpace(question))
+	if strings.Contains(q, "查询我的任务") || strings.Contains(q, "我的任务") || (strings.Contains(q, "任务") && strings.Contains(q, "我")) {
+		assigneeClause := s.buildAssigneeClause(userID, catalog)
+		sqlText := "SELECT id, title, board_id, fields, update_at FROM blocks WHERE type='card' AND delete_at=0 " + assigneeClause + " ORDER BY update_at DESC LIMIT 50"
+		if err := s.validateReadOnlySQL(sqlText); err != nil {
+			return "", err
+		}
+		return sqlText, nil
+	}
+	if strings.Contains(q, "代办") || strings.Contains(q, "未完成") || strings.Contains(q, "待办") {
+		assigneeClause := s.buildAssigneeClause(userID, catalog)
+		statusClause := s.buildStatusOpenClause(catalog)
+		sqlText := "SELECT id, title, board_id, fields, update_at FROM blocks WHERE type='card' AND delete_at=0 " + assigneeClause + statusClause + " ORDER BY update_at DESC LIMIT 50"
+		if err := s.validateReadOnlySQL(sqlText); err != nil {
+			return "", err
+		}
+		return sqlText, nil
+	}
+	if strings.Contains(q, "已完成") || (strings.Contains(q, "完成") && !strings.Contains(q, "未完成")) {
+		assigneeClause := s.buildAssigneeClause(userID, catalog)
+		statusClause := s.buildStatusDoneClause(catalog)
+		sqlText := "SELECT id, title, board_id, fields, update_at FROM blocks WHERE type='card' AND delete_at=0 " + assigneeClause + statusClause + " ORDER BY update_at DESC LIMIT 50"
+		if err := s.validateReadOnlySQL(sqlText); err != nil {
+			return "", err
+		}
+		return sqlText, nil
+	}
+	if strings.Contains(q, "进行中") {
+		assigneeClause := s.buildAssigneeClause(userID, catalog)
+		statusClause := s.buildStatusProgressClause(catalog)
+		sqlText := "SELECT id, title, board_id, fields, update_at FROM blocks WHERE type='card' AND delete_at=0 " + assigneeClause + statusClause + " ORDER BY update_at DESC LIMIT 50"
+		if err := s.validateReadOnlySQL(sqlText); err != nil {
+			return "", err
+		}
+		return sqlText, nil
+	}
+	if strings.Contains(q, "逾期") || strings.Contains(q, "过期") || strings.Contains(q, "过了截止日期") || strings.Contains(q, "截止日期已过") || strings.Contains(q, "已过期") {
+		assigneeClause := s.buildAssigneeClause(userID, catalog)
+		overdueClause := s.buildOverdueClause(catalog)
+		sqlText := "SELECT id, title, board_id, fields, update_at FROM blocks WHERE type='card' AND delete_at=0 " + assigneeClause + overdueClause + " ORDER BY update_at DESC LIMIT 50"
+		if err := s.validateReadOnlySQL(sqlText); err != nil {
+			return "", err
+		}
+		return sqlText, nil
+	}
+
 	prompt := fmt.Sprintf(`你是一个 Text-to-SQL 助手。请根据给定的数据库结构 (DDL) 和用户问题，生成一个只读、安全的 SQL。
 要求：
 - 只生成单条 SELECT 语句，不要包含任何其它内容（不要包含注释、解释、分号）。
-- 根据数据库类型为 sqlite（默认）来生成（例如使用 json_extract(fields, '$.assignee_id') 访问 JSON）。
-- 必须包含对用户 user_id 的约束：例如筛选 assignee_id = '%s' 的卡片或与之相关的数据。
+- 根据数据库类型为 sqlite 来生成；注意卡片属性位于 blocks.fields.properties 下，键为动态属性ID，例如使用 json_extract(fields, '$.properties.<propID>') 访问。
+- 必须包含对用户 user_id 的约束：例如使用人员属性（person 或 multiPerson）筛选分配给该用户的卡片。
 - 如果问题涉及看板或卡片统计，请合理连接 boards 与 blocks（type='card' 代表卡片）。
 - 尽量只返回必要的字段：例如卡片 id、title、board_id、状态、到期时间、更新时间等。
 - 确保 WHERE 子句只读安全，不要使用子查询去修改数据。
@@ -207,6 +287,192 @@ func (s *RAGService) generateSQL(schema string, userID string, question string) 
 	return sqlText, nil
 }
 
+type propCatalog struct {
+	PersonPropIDs      []string
+	MultiPersonPropIDs []string
+	StatusPropOptions  map[string]map[string]string
+	DatePropIDs        []string
+}
+
+func (s *RAGService) discoverPropertyCatalog() (*propCatalog, error) {
+	cfg := s.app.GetConfig()
+	dbPath := cfg.DBConfigString
+	if strings.TrimSpace(dbPath) == "" {
+		dbPath = "./focalboard.db"
+	}
+	var dsn string
+	if strings.Contains(dbPath, "?") {
+		dsn = dbPath + "&_journal_mode=WAL"
+	} else {
+		dsn = dbPath + "?_busy_timeout=5000&_journal_mode=WAL"
+	}
+	db, err := sql.Open("sqlite3", dsn)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT id, card_properties FROM boards WHERE delete_at=0")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cat := &propCatalog{StatusPropOptions: make(map[string]map[string]string)}
+	for rows.Next() {
+		var boardID string
+		var cardPropsJSON []byte
+		if err := rows.Scan(&boardID, &cardPropsJSON); err != nil {
+			return nil, err
+		}
+		var cardProps []map[string]interface{}
+		if err := json.Unmarshal(cardPropsJSON, &cardProps); err != nil {
+			continue
+		}
+		for _, prop := range cardProps {
+			idIface, ok := prop["id"]
+			if !ok {
+				continue
+			}
+			id, _ := idIface.(string)
+			typ, _ := prop["type"].(string)
+			switch typ {
+			case "person":
+				if id != "" {
+					cat.PersonPropIDs = append(cat.PersonPropIDs, id)
+				}
+			case "multiPerson":
+				if id != "" {
+					cat.MultiPersonPropIDs = append(cat.MultiPersonPropIDs, id)
+				}
+			case "select", "multiSelect":
+				name, _ := prop["name"].(string)
+				if strings.EqualFold(name, "Status") || strings.EqualFold(name, "状态") {
+					optsMap := make(map[string]string)
+					if optsIface, ok := prop["options"]; ok {
+						if optsArr, ok := optsIface.([]interface{}); ok {
+							for _, o := range optsArr {
+								if om, ok := o.(map[string]interface{}); ok {
+									oid, _ := om["id"].(string)
+									oval, _ := om["value"].(string)
+									if oid != "" && oval != "" {
+										optsMap[strings.ToUpper(oval)] = oid
+									}
+								}
+							}
+						}
+					}
+					if id != "" && len(optsMap) > 0 {
+						cat.StatusPropOptions[id] = optsMap
+					}
+				}
+			case "date":
+				if id != "" {
+					cat.DatePropIDs = append(cat.DatePropIDs, id)
+				}
+			}
+		}
+	}
+	return cat, nil
+}
+
+func (s *RAGService) buildAssigneeClause(userID string, cat *propCatalog) string {
+	if cat == nil || (len(cat.PersonPropIDs) == 0 && len(cat.MultiPersonPropIDs) == 0) {
+		return ""
+	}
+	var parts []string
+	for _, pid := range cat.PersonPropIDs {
+		parts = append(parts, "json_extract(fields, '$.properties."+pid+"') = '"+userID+"'")
+	}
+	for _, pid := range cat.MultiPersonPropIDs {
+		parts = append(parts, "EXISTS (SELECT 1 FROM json_each(json_extract(fields, '$.properties."+pid+"')) WHERE value = '"+userID+"')")
+	}
+	return " AND (" + strings.Join(parts, " OR ") + ")"
+}
+
+func (s *RAGService) buildStatusOpenClause(cat *propCatalog) string {
+	if cat == nil || len(cat.StatusPropOptions) == 0 {
+		return ""
+	}
+	doneSyn := []string{"已完成", "完成", "DONE"}
+	var parts []string
+	for sid, opts := range cat.StatusPropOptions {
+		var doneIDs []string
+		for _, v := range doneSyn {
+			if oid, ok := opts[strings.ToUpper(v)]; ok {
+				doneIDs = append(doneIDs, "'"+oid+"'")
+			}
+		}
+		if len(doneIDs) > 0 {
+			parts = append(parts, "(json_extract(fields, '$.properties."+sid+"') NOT IN ("+strings.Join(doneIDs, ",")+") OR json_extract(fields, '$.properties."+sid+"') IS NULL)")
+		} else {
+			parts = append(parts, "(json_extract(fields, '$.properties."+sid+"') IS NULL)")
+		}
+	}
+	return " AND (" + strings.Join(parts, " OR ") + ")"
+}
+
+func (s *RAGService) buildStatusDoneClause(cat *propCatalog) string {
+	if cat == nil || len(cat.StatusPropOptions) == 0 {
+		return ""
+	}
+	doneSyn := []string{"已完成", "完成", "DONE"}
+	var parts []string
+	for sid, opts := range cat.StatusPropOptions {
+		var doneIDs []string
+		for _, v := range doneSyn {
+			if oid, ok := opts[strings.ToUpper(v)]; ok {
+				doneIDs = append(doneIDs, "'"+oid+"'")
+			}
+		}
+		if len(doneIDs) > 0 {
+			parts = append(parts, "json_extract(fields, '$.properties."+sid+"') IN ("+strings.Join(doneIDs, ",")+")")
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return " AND (" + strings.Join(parts, " OR ") + ")"
+}
+
+func (s *RAGService) buildStatusProgressClause(cat *propCatalog) string {
+	if cat == nil || len(cat.StatusPropOptions) == 0 {
+		return ""
+	}
+	progSyn := []string{"进行中", "处理中", "IN PROGRESS"}
+	var parts []string
+	for sid, opts := range cat.StatusPropOptions {
+		var ids []string
+		for _, v := range progSyn {
+			if oid, ok := opts[strings.ToUpper(v)]; ok {
+				ids = append(ids, "'"+oid+"'")
+			}
+		}
+		if len(ids) > 0 {
+			parts = append(parts, "json_extract(fields, '$.properties."+sid+"') IN ("+strings.Join(ids, ",")+")")
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return " AND (" + strings.Join(parts, " OR ") + ")"
+}
+
+func (s *RAGService) buildOverdueClause(cat *propCatalog) string {
+	var parts []string
+	if cat != nil {
+		for _, did := range cat.DatePropIDs {
+			parts = append(parts, "(json_extract(json_extract(fields, '$.properties."+did+"'), '$.from') IS NOT NULL AND json_extract(json_extract(fields, '$.properties."+did+"'), '$.from') < (strftime('%s','now')*1000))")
+		}
+	}
+	clause := ""
+	if len(parts) > 0 {
+		clause = " AND (" + strings.Join(parts, " OR ") + ")"
+	}
+	clause += s.buildStatusOpenClause(cat)
+	return clause
+}
+
 // executeQuery: 对 sqlite3 执行只读查询，并将行序列化为 JSON 数组.
 func (s *RAGService) executeQuery(query string) (string, error) {
 	cfg := s.app.GetConfig()
@@ -222,7 +488,12 @@ func (s *RAGService) executeQuery(query string) (string, error) {
 
 	s.logger.Debug("RAGService: executeQuery connecting to DB", mlog.String("db_path", dbPath))
 
-	dsn := dbPath + "?_busy_timeout=5000&_journal_mode=WAL"
+	var dsn string
+	if strings.Contains(dbPath, "?") {
+		dsn = dbPath + "&_journal_mode=WAL"
+	} else {
+		dsn = dbPath + "?_busy_timeout=5000&_journal_mode=WAL"
+	}
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		s.logger.Error("RAGService: executeQuery sql.Open failed", mlog.Err(err))
@@ -278,12 +549,21 @@ func (s *RAGService) executeQuery(query string) (string, error) {
 // buildFinalPrompt: 把用户问题与上下文数据拼成最终给 LLM 的 Prompt.
 func (s *RAGService) buildFinalPrompt(question string, contextData string) string {
 	var b strings.Builder
-	b.WriteString("你是一个友好的 Focal Board 助手。请根据用户的问题, 和我为你提供的实时数据, 来生成一个自然、友好的回答。\n\n")
+
+	// --- (新的 Prompt) ---
+	b.WriteString("你是一个 Focal Board 任务助手。请根据我提供的 JSON 实时数据，为用户生成一份简短、友好、易于阅读的中文任务总结。\n\n")
+	b.WriteString("【重要规则】:\n")
+	b.WriteString("1. **不要**复述或打印原始的 JSON 数据。\n")
+	b.WriteString("2. **直接**开始你的总结性回答 (例如：'你好！根据你的任务情况...')。\n")
+	b.WriteString("3. 使用表情符号 (✅, 🚀) 来组织你的回答。\n")
+	b.WriteString("4. 如果数据中有逾期的任务，请明确指出。\n\n")
+	// --- (Prompt 结束) ---
+
 	b.WriteString("用户问题: \"")
 	b.WriteString(question)
 	b.WriteString("\"\n\n实时数据 (JSON 格式):\n")
 	b.WriteString(contextData)
-	b.WriteString("\n\n你的回答:\n")
+	b.WriteString("\n\n你的回答 (请直接开始总结):\n") // <-- 提示它直接开始
 	return b.String()
 }
 

@@ -52,6 +52,8 @@ const ViewHeaderSearch = (): JSX.Element => {
         searchFieldRef.current?.focus(true)
     })
 
+    const placeholder = intl.formatMessage({id: 'ViewHeader.search-text', defaultMessage: 'Search cards'})
+
     return (
         <div className='board-search-field'>
             <CompassIcon
@@ -61,7 +63,7 @@ const ViewHeaderSearch = (): JSX.Element => {
             <Editable
                 ref={searchFieldRef}
                 value={searchValue}
-                placeholderText={intl.formatMessage({id: 'ViewHeader.search-text', defaultMessage: 'Search cards'})}
+                placeholderText={placeholder}
                 onChange={(value) => {
                     setSearchValue(value)
                     debouncedDispatchSearchText(value)
