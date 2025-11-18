@@ -343,17 +343,14 @@ function searchFilterCards(cards: Card[], board: Board, searchTextRaw: string): 
         }
 
         for (const [propertyId, propertyValue] of Object.entries(card.fields.properties)) {
-            // TODO: Refactor to a shared function that returns the display value of a property
             const propertyTemplate = board.cardProperties.find((o) => o.id === propertyId)
             if (propertyTemplate && propertyValue) {
                 if (propertyTemplate.type === 'select') {
-                    // Look up the value of the select option
                     const option = propertyTemplate.options.find((o) => o.id === propertyValue)
                     if (option?.value.toLowerCase().includes(searchText)) {
                         return true
                     }
                 } else if (propertyTemplate.type === 'multiSelect') {
-                    // Look up the value of the select option
                     const options = (Array.isArray(propertyValue) ? propertyValue : [propertyValue]).map((value) => propertyTemplate.options.find((o) => o.id === value)?.value.toLowerCase())
                     if (options?.includes(searchText)) {
                         return true
