@@ -92,7 +92,7 @@ describe('components/sidebarSidebar', () => {
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar 
+                    <Sidebar
                         onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
                         onTaskAIOpen={onTaskAIOpen}
                     />
@@ -165,7 +165,7 @@ describe('components/sidebarSidebar', () => {
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar 
+                    <Sidebar
                         onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
                         onTaskAIOpen={onTaskAIOpen}
                     />
@@ -237,7 +237,7 @@ describe('components/sidebarSidebar', () => {
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar 
+                    <Sidebar
                         onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
                         onTaskAIOpen={onTaskAIOpen}
                     />
@@ -308,7 +308,7 @@ describe('components/sidebarSidebar', () => {
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar 
+                    <Sidebar
                         onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
                         onTaskAIOpen={onTaskAIOpen}
                     />
@@ -372,7 +372,7 @@ describe('components/sidebarSidebar', () => {
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar 
+                    <Sidebar
                         onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
                         onTaskAIOpen={onTaskAIOpen}
                     />
@@ -438,7 +438,7 @@ describe('components/sidebarSidebar', () => {
         const component = wrapIntl(
             <ReduxProvider store={store}>
                 <Router history={history}>
-                    <Sidebar 
+                    <Sidebar
                         onBoardTemplateSelectorOpen={onBoardTemplateSelectorOpen}
                         onTaskAIOpen={onTaskAIOpen}
                     />

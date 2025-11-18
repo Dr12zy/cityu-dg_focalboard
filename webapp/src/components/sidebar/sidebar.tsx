@@ -421,6 +421,7 @@ const Sidebar = (props: Props) => {
             <div
                 className='task-ai-button'
                 onClick={props.onTaskAIOpen}
+            // eslint-disable-next-line react/jsx-no-literals
             >
                 Task AI
             </div>

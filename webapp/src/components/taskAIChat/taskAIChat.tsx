@@ -98,16 +98,31 @@ function TaskAIChat(props: Props) {
         const historyPayload = buildAIHistory([...messages, userMessage])
 
         try {
-            const response = await octoClient.sendAIChat({
+            let accumulated = ''
+            const response = await octoClient.sendAIChatStream({
                 message: messageText,
                 messages: historyPayload,
+                stream: true,
+                onDelta: (text: string) => {
+                    accumulated += text
+                    setMessages((prev) => prev.map((msg) => {
+                        if (msg.id === placeholderId) {
+                            return {
+                                ...msg,
+                                text: accumulated,
+                                pending: true,
+                            }
+                        }
+                        return msg
+                    }))
+                },
             })
 
             setMessages((prev) => prev.map((msg) => {
                 if (msg.id === placeholderId) {
                     return {
                         ...msg,
-                        text: response.message || 'AI 暂无回复',
+                        text: accumulated || response.message || 'AI 暂无回复',
                         pending: false,
                     }
                 }
@@ -220,7 +235,7 @@ function TaskAIChat(props: Props) {
                                 key={msg.id}
                                 className={`message ${msg.isUser ? 'user' : 'ai'} ${msg.pending ? 'pending' : ''}`}
                             >
-                                {msg.pending ? 'AI is thinking…' : msg.text}
+                                {msg.text}
                             </div>
                         ))
                     )}
