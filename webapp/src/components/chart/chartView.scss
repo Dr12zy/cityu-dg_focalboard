@@ -1,0 +1,59 @@
+.ChartView {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--center-channel-color);
+        }
+
+        .chart-type-selector {
+            display: flex;
+            gap: 8px;
+
+            button {
+                padding: 8px 16px;
+                border: 1px solid var(--center-channel-color-16);
+                background: var(--center-channel-bg);
+                color: var(--center-channel-color);
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+
+                &:hover {
+                    background: var(--center-channel-color-08);
+                }
+
+                &.active {
+                    background: var(--button-bg);
+                    color: var(--button-color);
+                    border-color: var(--button-bg);
+                }
+            }
+        }
+    }
+
+    .chart-container {
+        flex: 1;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .chart-empty {
+            color: var(--center-channel-color-64);
+            font-size: 16px;
+        }
+    }
+}
+
