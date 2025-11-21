@@ -58,6 +58,7 @@ import CalendarFullView from './calendar/fullCalendar'
 import CardLimitNotification from './cardLimitNotification'
 
 import Gallery from './gallery/gallery'
+import ChartView from './chart/chartView'
 import {BoardTourSteps, FINISHED, TOUR_BOARD, TOUR_CARD} from './onboardingTour'
 import ShareBoardTourStep from './onboardingTour/shareBoard/shareBoard'
 
@@ -509,6 +510,15 @@ const CenterPanel = (props: Props) => {
                     addCard={(show) => addCard('', show)}
                     hiddenCardsCount={props.hiddenCardsCount}
                     showHiddenCardCountNotification={hiddenCardCountNotifyHandler}
+                />}
+            {activeView.fields.viewType === 'chart' &&
+                <ChartView
+                    board={props.board}
+                    cards={props.cards}
+                    activeView={props.activeView}
+                    readonly={props.readonly}
+                    groupByProperty={props.groupByProperty}
+                    visibleGroups={visibleGroups}
                 />}
             <CardLimitNotification
                 showHiddenCardNotification={showHiddenCardCountNotification}

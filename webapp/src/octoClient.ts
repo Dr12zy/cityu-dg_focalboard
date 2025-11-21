@@ -19,26 +19,6 @@ import {BoardsCloudLimits} from './boardsCloudLimits'
 import {TopBoardResponse} from './insights'
 import {BoardSiteStatistics} from './statistics'
 
-export type AIChatMessage = {
-    role: 'user' | 'assistant'
-    content: string
-}
-
-export type AIChatRequest = {
-    message: string
-    messages?: AIChatMessage[]
-    model?: string
-    temperature?: number
-    maxTokens?: number
-    stream?: boolean
-    onDelta?: (text: string) => void
-}
-
-export type AIChatResponse = {
-    message: string
-    model?: string
-}
-
 //
 // OctoClient is the client interface to the server APIs
 //
@@ -65,18 +45,7 @@ class OctoClient {
     }
 
     get token(): string {
-        const t = localStorage.getItem('focalboardSessionId') || ''
-        if (t) {
-            return t
-        }
-
-        const qs = new URLSearchParams(window.location.search)
-        const r = qs.get('r') || ''
-        if (r) {
-            localStorage.setItem('focalboardSessionId', r)
-            return r
-        }
-        return ''
+        return localStorage.getItem('focalboardSessionId') || ''
     }
     set token(value: string) {
         localStorage.setItem('focalboardSessionId', value)
@@ -1113,116 +1082,6 @@ class OctoClient {
             method: 'PUT',
             headers: this.headers(),
         })
-    }
-
-    async sendAIChat(request: AIChatRequest): Promise<AIChatResponse> {
-        const path = '/api/v2/ai/chat'
-        const payload: Record<string, unknown> = {
-            message: request.message,
-        }
-
-        if (request.messages && request.messages.length) {
-            payload.messages = request.messages
-        }
-        if (typeof request.temperature !== 'undefined') {
-            payload.temperature = request.temperature
-        }
-        if (typeof request.stream !== 'undefined') {
-            payload.stream = request.stream
-        }
-        if (request.model) {
-            payload.model = request.model
-        }
-        if (typeof request.maxTokens !== 'undefined') {
-            payload.max_tokens = request.maxTokens
-        }
-
-        const response = await fetch(this.getBaseURL() + path, {
-            method: 'POST',
-            headers: this.headers(),
-            body: JSON.stringify(payload),
-        })
-
-        const json = (await this.getJson(response, {message: ''})) as AIChatResponse & {error?: string}
-        if (response.status !== 200) {
-            throw new Error(json?.message || json?.error || 'Unable to reach AI service')
-        }
-
-        return json
-    }
-
-    async sendAIChatStream(request: AIChatRequest): Promise<AIChatResponse> {
-        const path = '/api/v2/ai/chat/stream'
-        const payload: Record<string, unknown> = {
-            message: request.message,
-        }
-
-        if (request.messages && request.messages.length) {
-            payload.messages = request.messages
-        }
-        if (typeof request.temperature !== 'undefined') {
-            payload.temperature = request.temperature
-        }
-        if (request.model) {
-            payload.model = request.model
-        }
-        if (typeof request.maxTokens !== 'undefined') {
-            payload.max_tokens = request.maxTokens
-        }
-
-        const response = await fetch(this.getBaseURL() + path, {
-            method: 'POST',
-            headers: this.headers(),
-            body: JSON.stringify(payload),
-        })
-
-        if (!response.body) {
-            const json = (await this.getJson(response, {message: ''})) as AIChatResponse & {error?: string}
-            if (response.status !== 200) {
-                throw new Error(json?.message || json?.error || 'Unable to reach AI service')
-            }
-            return json
-        }
-
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder('utf-8')
-        let buffer = ''
-        let output = ''
-        const process = ({done, value}: {done: boolean, value?: Uint8Array}): void => {
-            if (done) {
-                return
-            }
-            buffer += decoder.decode(value || new Uint8Array(), {stream: true})
-            const lines = buffer.split(/\r?\n/)
-            buffer = lines.pop() || ''
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(6).trim()
-                    if (!data || data === '[DONE]') {
-                        continue
-                    }
-                    try {
-                        const obj = JSON.parse(data) as {content?: string, done?: boolean}
-                        if (obj.content) {
-                            if (typeof request.onDelta === 'function') {
-                                try {
-                                    request.onDelta(obj.content)
-                                } catch { void 0 }
-                            }
-                            output += obj.content
-                        }
-                        if (obj.done) {
-                            return
-                        }
-                    } catch (_) {
-                        output = String(output)
-                    }
-                }
-            }
-            reader.read().then(process)
-        }
-        await reader.read().then(process)
-        return {message: output, model: request.model}
     }
 }
 

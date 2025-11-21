@@ -18,6 +18,7 @@ import DeleteIcon from '../widgets/icons/delete'
 import DuplicateIcon from '../widgets/icons/duplicate'
 import GalleryIcon from '../widgets/icons/gallery'
 import TableIcon from '../widgets/icons/table'
+import ChartIcon from '../widgets/icons/chart'
 import Menu from '../widgets/menu'
 
 import BoardPermissionGate from './permissions/boardPermissionGate'
@@ -210,6 +211,35 @@ const ViewMenu = (props: Props) => {
             })
     }, [props.board, props.activeView, props.intl, showView])
 
+    const handleAddViewChart = useCallback(() => {
+        const {board, activeView, intl} = props
+
+        Utils.log('addview-chart')
+
+        const view = createBoardView()
+        view.title = intl.formatMessage({id: 'View.NewChartTitle', defaultMessage: 'Chart view'})
+        view.fields.viewType = 'chart'
+        view.boardId = board.id
+        view.fields.visiblePropertyIds = [Constants.titleColumnId]
+
+        const oldViewId = activeView.id
+
+        mutator.insertBlock(
+            view.boardId,
+            view,
+            'add view',
+            async (block: Block) => {
+                // This delay is needed because WSClient has a default 100 ms notification delay before updates
+                setTimeout(() => {
+                    Utils.log(`showView: ${block.id}`)
+                    showView(block.id)
+                }, 120)
+            },
+            async () => {
+                showView(oldViewId)
+            })
+    }, [props.board, props.activeView, props.intl, showView])
+
     const {views, intl} = props
 
     const duplicateViewText = intl.formatMessage({
@@ -236,6 +266,10 @@ const ViewMenu = (props: Props) => {
         id: 'View.Gallery',
         defaultMessage: 'Gallery',
     })
+    const chartText = intl.formatMessage({
+        id: 'View.Chart',
+        defaultMessage: 'Chart',
+    })
 
     const iconForViewType = (viewType: IViewType) => {
         switch (viewType) {
@@ -243,6 +277,7 @@ const ViewMenu = (props: Props) => {
         case 'table': return <TableIcon/>
         case 'gallery': return <GalleryIcon/>
         case 'calendar': return <CalendarIcon/>
+        case 'chart': return <ChartIcon/>
         default: return <div/>
         }
     }
@@ -314,6 +349,12 @@ const ViewMenu = (props: Props) => {
                                 name='Calendar'
                                 icon={<CalendarIcon/>}
                                 onClick={handleAddViewCalendar}
+                            />
+                            <Menu.Text
+                                id='chart'
+                                name={chartText}
+                                icon={<ChartIcon/>}
+                                onClick={handleAddViewChart}
                             />
                         </div>
                     </Menu.SubMenu>

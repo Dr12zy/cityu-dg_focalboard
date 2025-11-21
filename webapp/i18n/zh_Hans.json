@@ -310,10 +310,12 @@
   "View.DeleteView": "删除视图",
   "View.DuplicateView": "复制视图",
   "View.Gallery": "画廊",
+  "View.Chart": "图表",
   "View.NewBoardTitle": "版面视图",
   "View.NewCalendarTitle": "日历视图",
   "View.NewGalleryTitle": "画廊视图",
-  "View.NewTableTitle": "图表视图",
+  "View.NewTableTitle": "表格视图",
+  "View.NewChartTitle": "图表视图",
   "View.NewTemplateDefaultTitle": "未命名模板",
   "View.NewTemplateTitle": "未命名",
   "View.Table": "图表",
@@ -447,5 +449,10 @@
   "tutorial_tip.got_it": "了解",
   "tutorial_tip.ok": "下一个",
   "tutorial_tip.out": "选择不使用这些提示。",
-  "tutorial_tip.seen": "之前有见到过吗？"
+  "tutorial_tip.seen": "之前有见到过吗？",
+  "ChartView.title": "任务统计图表",
+  "ChartView.bar": "柱状图",
+  "ChartView.line": "折线图",
+  "ChartView.pie": "饼图",
+  "ChartView.noData": "暂无数据可显示"
 }

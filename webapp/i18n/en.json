@@ -319,10 +319,12 @@
   "View.DeleteView": "Delete view",
   "View.DuplicateView": "Duplicate view",
   "View.Gallery": "Gallery",
+  "View.Chart": "Chart",
   "View.NewBoardTitle": "Board view",
   "View.NewCalendarTitle": "Calendar view",
   "View.NewGalleryTitle": "Gallery view",
   "View.NewTableTitle": "Table view",
+  "View.NewChartTitle": "Chart view",
   "View.NewTemplateDefaultTitle": "Untitled Template",
   "View.NewTemplateTitle": "Untitled",
   "View.Table": "Table",
@@ -459,5 +461,10 @@
   "tutorial_tip.got_it": "Got it",
   "tutorial_tip.ok": "Next",
   "tutorial_tip.out": "Opt out of these tips.",
-  "tutorial_tip.seen": "Seen this before?"
+  "tutorial_tip.seen": "Seen this before?",
+  "ChartView.title": "Task Statistics Chart",
+  "ChartView.bar": "Bar Chart",
+  "ChartView.line": "Line Chart",
+  "ChartView.pie": "Pie Chart",
+  "ChartView.noData": "No data to display"
 }

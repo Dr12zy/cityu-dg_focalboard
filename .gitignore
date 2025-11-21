@@ -74,3 +74,85 @@ server/vendor
 docker/certs
 docker/data
 server/**/*.coverage
+
+# Gradle
+.gradle/
+.gradle
+
+# Android
+.android/
+.android
+
+# Other user directories
+.AndrowsBox/
+.GameAssistBox/
+.Ld9VirtualBox/
+.MUMUVMM/
+.anaconda/
+.anaconda_backup/
+.chocolatey/
+.conda/
+.condarc
+.continuum/
+.cursor/
+.docker/
+.dotnet/
+.emulator_console_auth_token
+.git-for-windows-updater
+.gitconfig
+.heyboxacc.conf
+.i18nupdatemod/
+.ipynb_checkpoints/
+.ipython/
+.jupyter/
+.kaggle/
+.keras/
+.lim/
+.limpc/
+.matplotlib/
+.minttyrc
+.node_repl_history
+.npmrc
+.nuget/
+.openjfx/
+.ssh/
+.streamlit/
+.texlive2024/
+.yarnrc
+3D Objects/
+AppData/
+CLionProjects/
+Contacts/
+Desktop/
+Documents/
+Downloads/
+Favorites/
+LGP/
+Links/
+Music/
+My project (1)/
+My project/
+NTUSER.DAT
+NTUSER.DAT*
+Notepad++/
+OneDrive/
+Pictures/
+PycharmProjects/
+Saved Games/
+Searches/
+Untitled.ipynb
+Videos/
+WPS Cloud Files/
+WeChatProjects/
+calculator-mini-program/
+fairseq/
+kVWSiuXPDm8
+mumu_boot.txt
+ntuser.dat.LOG*
+ntuser.ini
+quartus2.ini
+quartus2.qreg
+quartus_full_rules_file.txt
+source/
+xwechat_files/
+1.14-windows.xml

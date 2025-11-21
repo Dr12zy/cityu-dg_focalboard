@@ -55,7 +55,6 @@ type Props = {
     activeBoardId?: string
     onBoardTemplateSelectorOpen: () => void
     onBoardTemplateSelectorClose?: () => void
-    onTaskAIOpen: () => void
 }
 
 function getWindowDimensions() {
@@ -416,14 +415,6 @@ const Sidebar = (props: Props) => {
                     id='Sidebar.add-board'
                     defaultMessage='+ Add board'
                 />
-            </div>
-
-            <div
-                className='task-ai-button'
-                onClick={props.onTaskAIOpen}
-            // eslint-disable-next-line react/jsx-no-literals
-            >
-                Task AI
             </div>
 
             <SidebarSettingsMenu activeTheme={getActiveThemeName()}/>

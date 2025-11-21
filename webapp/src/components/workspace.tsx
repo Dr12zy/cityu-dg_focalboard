@@ -34,7 +34,6 @@ import BoardTemplateSelector from './boardTemplateSelector/boardTemplateSelector
 import GuestNoBoards from './guestNoBoards'
 
 import Sidebar from './sidebar/sidebar'
-import TaskAIChat from './taskAIChat/taskAIChat'
 
 import './workspace.scss'
 
@@ -120,7 +119,7 @@ function CenterContent(props: Props) {
 
     if (board && !isBoardHidden() && activeView) {
         let property = groupByProperty
-        if ((!property || !propsRegistry.get(property.type).canGroup) && activeView.fields.viewType === 'board') {
+        if ((!property || !propsRegistry.get(property.type).canGroup) && (activeView.fields.viewType === 'board' || activeView.fields.viewType === 'chart')) {
             property = board?.cardProperties.find((o) => propsRegistry.get(o.type).canGroup)
         }
 
@@ -162,7 +161,6 @@ const Workspace = (props: Props) => {
 
     const viewId = useAppSelector(getCurrentViewId)
     const [boardTemplateSelectorOpen, setBoardTemplateSelectorOpen] = useState(false)
-    const [taskAIChatOpen, setTaskAIChatOpen] = useState(false)
 
     const closeBoardTemplateSelector = useCallback(() => {
         setBoardTemplateSelectorOpen(false)
@@ -172,15 +170,6 @@ const Workspace = (props: Props) => {
             setBoardTemplateSelectorOpen(true)
         }
     }, [board])
-
-    const openTaskAIChat = useCallback(() => {
-        setTaskAIChatOpen(true)
-    }, [])
-
-    const closeTaskAIChat = useCallback(() => {
-        setTaskAIChatOpen(false)
-    }, [])
-
     useEffect(() => {
         setBoardTemplateSelectorOpen(false)
     }, [board, viewId])
@@ -191,7 +180,6 @@ const Workspace = (props: Props) => {
                 <Sidebar
                     onBoardTemplateSelectorOpen={openBoardTemplateSelector}
                     onBoardTemplateSelectorClose={closeBoardTemplateSelector}
-                    onTaskAIOpen={openTaskAIChat}
                     activeBoardId={board?.id}
                 />
             }
@@ -209,9 +197,6 @@ const Workspace = (props: Props) => {
                     readonly={props.readonly}
                 />
             </div>
-            {taskAIChatOpen &&
-                <TaskAIChat onClose={closeTaskAIChat}/>
-            }
         </div>
     )
 }
