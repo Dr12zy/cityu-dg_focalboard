@@ -1,12 +1,15 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
+/* eslint-disable */
 import React, {useState, useRef, useEffect} from 'react'
 import {FormattedMessage} from 'react-intl'
 
 import {useAppSelector} from '../../store/hooks'
 import {getMe} from '../../store/users'
+import octoClient, {AIChatMessage} from '../../octoClient'
 
 import Modal from '../modal'
+import CloseIcon from '../../widgets/icons/close'
 
 import './taskAIChat.scss'
 
@@ -14,12 +17,30 @@ type Props = {
     onClose: () => void
 }
 
+type ChatMessage = {
+    id: string
+    text: string
+    isUser: boolean
+    pending?: boolean
+}
+
+const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+const buildAIHistory = (history: ChatMessage[]): AIChatMessage[] => history
+    .filter((msg) => !msg.pending)
+    .map((msg) => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.text,
+    }))
+
 function TaskAIChat(props: Props) {
-    const [messages, setMessages] = useState<Array<{text: string, isUser: boolean}>>([])
+    const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState('')
     const [showWelcomeMessage, setShowWelcomeMessage] = useState(true)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [isDragOver, setIsDragOver] = useState(false)
+    const [isSending, setIsSending] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -53,17 +74,75 @@ function TaskAIChat(props: Props) {
         return true
     }
 
-    const handleSend = () => {
-        if (input.trim() || selectedFile) {
-            const messageText = input.trim() || (selectedFile ? `Uploaded: ${selectedFile.name}` : '')
-            setMessages([...messages, {text: messageText, isUser: true}])
-            setInput('')
-            setSelectedFile(null)
-            setShowWelcomeMessage(false)
-            // 这里可以添加AI回复的逻辑
-            setTimeout(() => {
-                setMessages(prev => [...prev, {text: `这是一个AI回复示例。收到的输入: ${messageText}`, isUser: false}])
-            }, 1000)
+    const handleSend = async () => {
+        if (isSending) {
+            return
+        }
+
+        if (!input.trim() && !selectedFile) {
+            return
+        }
+
+        const messageText = input.trim() || (selectedFile ? `Uploaded: ${selectedFile.name}` : '')
+        const userMessage: ChatMessage = {id: createMessageId(), text: messageText, isUser: true}
+        const placeholderId = createMessageId()
+        const pendingMessage: ChatMessage = {id: placeholderId, text: 'AI is thinking   …', isUser: false, pending: true}
+
+        setMessages((prev) => [...prev, userMessage, pendingMessage])
+        setInput('')
+        setSelectedFile(null)
+        setShowWelcomeMessage(false)
+        setError(null)
+        setIsSending(true)
+
+        const historyPayload = buildAIHistory([...messages, userMessage])
+
+        try {
+            let accumulated = ''
+            const response = await octoClient.sendAIChatStream({
+                message: messageText,
+                messages: historyPayload,
+                stream: true,
+                onDelta: (text: string) => {
+                    accumulated += text
+                    setMessages((prev) => prev.map((msg) => {
+                        if (msg.id === placeholderId) {
+                            return {
+                                ...msg,
+                                text: accumulated,
+                                pending: true,
+                            }
+                        }
+                        return msg
+                    }))
+                },
+            })
+
+            setMessages((prev) => prev.map((msg) => {
+                if (msg.id === placeholderId) {
+                    return {
+                        ...msg,
+                        text: accumulated || response.message || 'AI 暂无回复',
+                        pending: false,
+                    }
+                }
+                return msg
+            }))
+        } catch (err) {
+            const errorText = err instanceof Error ? err.message : 'AI 服务暂时不可用'
+            setMessages((prev) => prev.map((msg) => {
+                if (msg.id === placeholderId) {
+                    return {
+                        ...msg,
+                        text: `AI 出错：${errorText}`,
+                        pending: false,
+                    }
+                }
+                return msg
+            }))
+            setError(errorText)
+        } finally {
+            setIsSending(false)
         }
     }
 
@@ -115,7 +194,7 @@ function TaskAIChat(props: Props) {
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            handleSend()
+            void handleSend()
         }
         // Shift + Enter will create a new line (default behavior)
     }
@@ -142,7 +221,7 @@ function TaskAIChat(props: Props) {
                         className='close-button'
                         onClick={props.onClose}
                     >
-                        
+                        <CloseIcon />
                     </button>
                 </div>
                 <div className='task-ai-chat-messages'>
@@ -151,10 +230,10 @@ function TaskAIChat(props: Props) {
                             Hi, {me.username}!
                         </div>
                     ) : (
-                        messages.map((msg, index) => (
+                        messages.map((msg) => (
                             <div
-                                key={index}
-                                className={`message ${msg.isUser ? 'user' : 'ai'}`}
+                                key={msg.id}
+                                className={`message ${msg.isUser ? 'user' : 'ai'} ${msg.pending ? 'pending' : ''}`}
                             >
                                 {msg.text}
                             </div>
@@ -182,13 +261,21 @@ function TaskAIChat(props: Props) {
                         <button onClick={handleFileButtonClick} className='file-upload-button'>
                             📎
                         </button>
-                        <button onClick={handleSend}>
+                        <button
+                            onClick={handleSend}
+                            disabled={isSending || (!input.trim() && !selectedFile)}
+                        >
                             <FormattedMessage
                                 id='TaskAIChat.send'
                                 defaultMessage='发送'
                             />
                         </button>
                     </div>
+                    {error && (
+                        <div className='task-ai-chat-error'>
+                            {error}
+                        </div>
+                    )}
                     {selectedFile && (
                         <div className='selected-file'>
                             <span>Selected: {selectedFile.name}</span>

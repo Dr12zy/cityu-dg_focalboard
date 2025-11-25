@@ -207,12 +207,8 @@ func (a *API) handleAIChatStream(w http.ResponseWriter, r *http.Request) {
 		a.logger.Warn("RAGService: PrepareRAGResponse failed, falling back to original message.", mlog.Err(err))
 		streamMessages = buildMessages(aiReq)
 	} else {
-		// 3b. RAG 成功!
-		//    我们使用 RAG 服务返回的“最终 Prompt”
 		a.logger.Debug("RAGService: PrepareRAGResponse success, using augmented prompt.")
-		streamMessages = []Message{
-			{Role: "user", Content: finalPrompt},
-		}
+		streamMessages = []Message{{Role: "user", Content: finalPrompt}}
 	}
 	// --------------------------------------------------------------------
 	// ↑↑↑↑↑↑ 【RAG 逻辑结束】 ↑↑↑↑↑↑
@@ -275,7 +271,6 @@ func (a *API) handleAIChatStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 设置 Server-Sent Events (SSE) 的响应头
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")

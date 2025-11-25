@@ -17,7 +17,6 @@ import './kanbanCard.scss'
 import CardBadges from '../cardBadges'
 import CardActionsMenu from '../cardActionsMenu/cardActionsMenu'
 import CardActionsMenuIcon from '../cardActionsMenu/cardActionsMenuIcon'
-
 export const OnboardingCardClassName = 'onboardingCard'
 
 type Props = {

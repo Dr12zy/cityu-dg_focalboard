@@ -822,6 +822,19 @@ class Mutator {
         )
     }
 
+    async changeViewChartValuePropertyId(boardId: string, viewId: string, oldChartValuePropertyId: string|undefined, chartValuePropertyId: string|undefined): Promise<void> {
+        await undoManager.perform(
+            async () => {
+                await octoClient.patchBlock(boardId, viewId, {updatedFields: {chartValuePropertyId}})
+            },
+            async () => {
+                await octoClient.patchBlock(boardId, viewId, {updatedFields: {chartValuePropertyId: oldChartValuePropertyId}})
+            },
+            'chart value property',
+            this.undoDisplayId,
+        )
+    }
+
     async changeViewVisiblePropertiesOrder(boardId: string, view: BoardView, template: IPropertyTemplate, destIndex: number, description = 'change property order'): Promise<void> {
         const oldVisiblePropertyIds = view.fields.visiblePropertyIds
         const newOrder = oldVisiblePropertyIds.slice()

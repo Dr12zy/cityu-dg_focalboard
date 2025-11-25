@@ -135,6 +135,11 @@
             &.ai {
                 background-color: rgba(var(--chat-border-rgb), 0.3);
             }
+
+            &.pending {
+                font-style: italic;
+                opacity: 0.8;
+            }
         }
     }
 
@@ -222,6 +227,13 @@
             &:active {
                 transform: scale(0.95);
             }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+                transform: none;
+                box-shadow: none;
+            }
         }
 
         .file-upload-button {
@@ -232,6 +244,12 @@
                 background: rgba(var(--chat-accent-rgb), 0.15);
             }
         }
+    }
+
+    .task-ai-chat-error {
+        color: #d93025;
+        font-size: 13px;
+        margin: 0 16px 12px;
     }
 
     .selected-file {

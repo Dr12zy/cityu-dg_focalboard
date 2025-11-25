@@ -38,6 +38,7 @@ import NewCardButton from './newCardButton'
 import ViewHeaderPropertiesMenu from './viewHeaderPropertiesMenu'
 import ViewHeaderGroupByMenu from './viewHeaderGroupByMenu'
 import ViewHeaderDisplayByMenu from './viewHeaderDisplayByMenu'
+import ViewHeaderChartValueMenu from './viewHeaderChartValueMenu'
 import ViewHeaderSortMenu from './viewHeaderSortMenu'
 import ViewHeaderActionsMenu from './viewHeaderActionsMenu'
 import ViewHeaderSearch from './viewHeaderSearch'
@@ -69,6 +70,7 @@ const ViewHeader = (props: Props) => {
 
     const withGroupBy = activeView.fields.viewType === 'board' || activeView.fields.viewType === 'table'
     const withDisplayBy = activeView.fields.viewType === 'calendar'
+    const withChartValue = activeView.fields.viewType === 'chart'
     const withSortBy = activeView.fields.viewType !== 'calendar'
 
     const [viewTitle, setViewTitle] = useState(activeView.title)
@@ -173,6 +175,15 @@ const ViewHeader = (props: Props) => {
                     properties={board.cardProperties}
                     activeView={activeView}
                     dateDisplayPropertyName={dateDisplayProperty?.name}
+                />}
+
+                {/* Chart value by */}
+
+                {withChartValue &&
+                <ViewHeaderChartValueMenu
+                    properties={board.cardProperties}
+                    activeView={activeView}
+                    chartValuePropertyName={board.cardProperties.find((p) => p.id === activeView.fields.chartValuePropertyId)?.name}
                 />}
 
                 {/* Filter */}

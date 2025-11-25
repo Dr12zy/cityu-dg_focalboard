@@ -4,7 +4,7 @@
 import {Block, createBlock} from './block'
 import {FilterGroup, createFilterGroup} from './filterGroup'
 
-type IViewType = 'board' | 'table' | 'gallery' | 'calendar'
+type IViewType = 'board' | 'table' | 'gallery' | 'calendar' | 'chart'
 type ISortOption = { propertyId: '__title' | string, reversed: boolean }
 
 type KanbanCalculationFields = {
@@ -16,6 +16,7 @@ type BoardViewFields = {
     viewType: IViewType
     groupById?: string
     dateDisplayPropertyId?: string
+    chartValuePropertyId?: string
     sortOptions: ISortOption[]
     visiblePropertyIds: string[]
     visibleOptionIds: string[]
@@ -41,6 +42,7 @@ function createBoardView(block?: Block): BoardView {
             viewType: block?.fields.viewType || 'board',
             groupById: block?.fields.groupById,
             dateDisplayPropertyId: block?.fields.dateDisplayPropertyId,
+            chartValuePropertyId: block?.fields.chartValuePropertyId,
             sortOptions: block?.fields.sortOptions?.map((o: ISortOption) => ({...o})) || [],
             visiblePropertyIds: block?.fields.visiblePropertyIds?.slice() || [],
             visibleOptionIds: block?.fields.visibleOptionIds?.slice() || [],
